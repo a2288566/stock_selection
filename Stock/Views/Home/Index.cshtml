@@ -1,0 +1,162 @@
+﻿@{
+
+}
+
+<div class="panel-body">
+    <div class="panel-heading">更新輸入月份全部個股</div>
+    <div class="form-group">
+
+        <div class="col-sm-10">
+            <label class="control-label col-sm-2">日期:</label>
+            <input type="text" class="form-control" id="updateStockDateM">
+            <label class="control-label col-sm-2">股號:</label>
+            <input type="text" class="form-control" id="updateFromNumberM">
+            <button type="button" class="btn btn-primary" onclick="updateDBM()">更新</button>
+        </div>
+    </div>
+
+</div>
+
+<div class="panel-body">
+    <button type="button" class="btn btn-primary" onclick="searchStock()">查詢</button><br>
+    <input type="checkbox" id="lowerIn3Day" name="lowerIn3Day" onclick="checkCheckedLower()">
+    <label for="lowerIn3Day"> 3天內股價創幾日新低</label>&nbsp;&nbsp;
+    <input type="text" style="max-width: 30px;" id="lowerIn3DayInput">&nbsp;&nbsp;
+    <input type="checkbox" id="higherIn3Day" name="higherIn3Day" onclick="checkCheckedHigher()">
+    <label for="higherIn3Day"> 3天內股價創幾日新高</label>&nbsp;&nbsp;
+    <input type="text" style="max-width: 30px;" id="higherIn3DayInput">&nbsp;&nbsp;
+    <input type="checkbox" id="largeTurnover" name="largeTurnover">
+    <label for="higherIn3Day"> 爆大量</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="checkbox" id="nearMonthlyAverage" name="nearMonthlyAverage">
+    <label for="higherIn3Day"> 股價靠近月均線(2%)</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="checkbox" id="nearQuarterlyAverage" name="nearQuarterlyAverage">
+    <label for="higherIn3Day"> 股價靠近季均線(2%)</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="checkbox" id="farQuarterlyAverage" name="farQuarterlyAverage">
+    <label for="higherIn3Day"> 股價遠離季均線(15%)</label><br>
+    <input type="checkbox" id="nearby20DayHighPrice" name="nearby20DayHighPrice">
+    @*<label for="higherIn3Day"> 股價在20日最高價附近</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <input type="checkbox" id="nearby20DayLowPrice" name="nearby20DayLowPrice">
+    <label for="higherIn3Day"> 股價在20日最低價附近</label>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;*@
+</div>
+
+
+
+<div class="panel-footer">
+    <div class="table-responsive" style="overflow-y:auto;height:400px;">
+        <table class="table" id="stockTable">
+            <thead>
+                <tr>
+                    <th>代碼</th>
+                    <th>名稱</th>
+                    <th>今日收盤價</th>
+                    <th>成交量</th>
+                </tr>
+            </thead>
+            <tbody>
+            </tbody>
+
+        </table>
+    </div>
+</div>
+
+
+<script>
+
+    function updateDBM() {
+        let updateStockDate = $('#updateStockDateM').val();
+        let updateFromNumber = $('#updateFromNumberM').val();
+
+
+        let postData = {
+            stockDate: updateStockDate,
+            stockNumber: updateFromNumber
+        };
+        
+        $.ajax({
+            url: '/Home/updateDBM',
+            type: 'POST',
+            dataType: 'json',
+            contentType: "application/json",
+            data: JSON.stringify(postData),
+            success: function (data) {
+                if (data.IsSuccess) {
+                    alert("更新成功");
+                } else {
+                    alert(data.Message);
+                }
+            }
+        });
+    }
+
+    function checkCheckedLower() {
+        if ($('#lowerIn3Day').prop("checked") == true) {
+            $('#higherIn3Day').prop("checked", false);
+        }
+    }
+
+    function checkCheckedHigher() {
+        if ($('#higherIn3Day').prop("checked") == true) {
+            $('#lowerIn3Day').prop("checked", false);
+        }
+    }
+
+    function searchStock() {
+
+        let condition = "";      
+        let customDays = "";
+
+        if ($('#lowerIn3Day').prop("checked") == true) {
+            condition = 'lowerIn3Day';
+            customDays = $('#lowerIn3DayInput').val();
+        }
+        if ($('#higherIn3Day').prop("checked") == true) {
+            condition = 'higherIn3Day';
+            customDays = $('#higherIn3DayInput').val();
+        }
+        if ($('#largeTurnover').prop("checked") == true) {
+            condition = 'largeTurnover';
+        }
+        if ($('#nearMonthlyAverage').prop("checked") == true) {
+            condition = 'nearMonthlyAverage';
+        }
+        if ($('#nearQuarterlyAverage').prop("checked") == true) {
+            condition = 'nearQuarterlyAverage';
+        }
+        if ($('#farQuarterlyAverage').prop("checked") == true) {
+            condition = 'farQuarterlyAverage';
+        }
+        //if ($('#nearby20DayHighPrice').prop("checked") == true) {
+        //    condition = 'nearby20DayHighPrice';
+        //}
+        //if ($('#nearby20DayLowPrice').prop("checked") == true) {
+        //    condition = 'nearby20DayLowPrice';
+        //}
+        
+        $.ajax({
+            url: '/condition/condition',
+            type: 'POST',
+            data: JSON.stringify({ condition: condition, customDays: customDays }),
+            dataType: 'json',
+            contentType: "application/json",
+            success: function (data) {
+                if (!data.IsSuccess) {
+                    alert(data.Message);
+                    return;
+                }
+
+                $('#stockTable tbody').empty();
+
+                //陣列資料加入到tbody中
+                $.each(data.stockList, function (index, item) {
+                    $('#stockTable tbody').append('<tr>' +
+                        '<td>' + item.number + '</td>' +
+                        '<td>' + item.name + '</td>' +
+                        '<td>' + item.closeP + '</td>' +
+                        '<td>' + item.turnover + '</td>' +
+                        '</tr>');
+                });
+            }
+        });
+    }
+
+</script>
